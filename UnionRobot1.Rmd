@@ -1,0 +1,791 @@
+---
+title: "UnionRobot1"
+author: "Larry Liu"
+date: "11/28/2024"
+output: pdf_document
+---
+```{r}
+library(tidyr)
+library(dplyr)
+library(haven)
+library(readxl)
+library(stargazer)
+library(ggplot2)
+library(ggrepel)
+library(gridExtra)
+library(sandwich)
+```
+
+Robot statistics: https://www.census.gov/library/publications/2024/econ/2021-asm-robotic-equipment.html % of workers exposed to robots
+Union statistics: https://unionstats.com/ % of workers covered in labor union
+Control variables: https://data.census.gov/: DP03 Selected Economic Characteristics
+
+```{r}
+setwd("~/Documents/ResearchProjects/Trade,Robot,Union")
+robotstate<-read.csv("robotstate.csv")
+robotindustry<-read.csv("robotindustry.csv")
+```
+
+## Manipulate robot variable
+
+```{r}
+robotstate <- robotstate %>%
+  pivot_longer(
+    cols = starts_with("robotstate"),     # Specify the columns to pivot
+    names_to = "year",              # Name of the new column for key
+    values_to = "robotpct_state"             # Name of the new column for values
+  )
+
+##strip unnecessary characters
+robotstate <- robotstate %>%
+  mutate(robotpct_state = as.numeric(gsub("%", "", robotpct_state)),
+         year=gsub("robotstate","",year))
+
+##filter out DC and Hawaii: too many missing values
+robotstate<-robotstate%>%
+  filter(!(state %in% c("Hawaii", "District of Columbia")))
+
+## repeat for robotindustry
+robotindustry <- robotindustry %>%
+  pivot_longer(
+    cols = starts_with("robotind"),     # Specify the columns to pivot
+    names_to = "year",              # Name of the new column for key
+    values_to = "robotpct_ind"             # Name of the new column for values
+  )
+
+robotindustry <- robotindustry %>%
+  mutate(robotpct_ind=gsub("(s)","",robotpct_ind),
+         robotpct_ind = as.numeric(gsub("%", "", robotpct_ind)),
+         year=gsub("robotind","",year))
+
+## combine the two dataframes by multiplying the robotpct values
+state_industry_robot <- expand.grid(
+  year = unique(robotindustry$year),
+  state = unique(robotstate$state),
+  industry = unique(robotindustry$industry)
+) %>%
+  left_join(robotindustry, by = c("year", "industry")) %>%
+  left_join(robotstate, by = c("year", "state")) %>%
+  mutate(robotpct_combined = (robotpct_ind + robotpct_state)/2,
+         idvar= paste(state, industry, year, sep = "-"))
+```
+
+## Union data
+
+```{r}
+## states
+stateunion<-read_dta("state_1983_2023.dta")
+stateunion1<-stateunion%>%filter(sector=="Total", 
+                                 year %in% c("2018", "2019", "2020", "2021"))%>%
+  mutate(unioncovpct_state=pctcov*100)
+
+##industry
+indunion2018<-read_excel("ind_2018.xlsx")
+indunion2018<-indunion2018%>%mutate(year=2018)
+indunion2019<-read_excel("ind_2019.xlsx")
+indunion2019<-indunion2019%>%mutate(year=2019)
+indunion2020<-read_excel("ind_2020.xlsx")
+indunion2020<-indunion2020%>%mutate(year=2020)
+indunion2021<-read_excel("ind_2021.xlsx")
+indunion2021<-indunion2021%>%mutate(year=2021)
+
+##merge dataframes
+indunion<-bind_rows(indunion2018, indunion2019, indunion2020,indunion2021)
+indunion<-indunion %>%
+  mutate(across(3:8, as.numeric))%>%
+  rename(employment=`Employment (in 1000s)`, covered=`Covered (in 1000s)`,
+         members=`Members (in 1000s)`)
+
+manufacturing<-indunion%>%
+    group_by(year,condition=Industry %in% c("NONDURABLE GOODS MANUFACTURING", "DURABLE GOODS MANUFACTURING"))%>%
+    summarize(unioncovpct=unioncov*100)%>%
+  filter(condition==TRUE)%>%ungroup()%>%
+  group_by(year)%>%
+  summarize(unioncovpct=mean(unioncovpct))%>%
+    #.[c(2,5,8,11),c(1,3)]%>%
+  mutate(industry="Manufacturing")
+
+food<-indunion%>%
+  group_by(year, condition=CIC=="1070"|CIC=="1080"|CIC=="1090"|CIC=="1170"|CIC=="1180"|
+                         CIC=="1190"|CIC=="1270"|CIC=="1280"|CIC=="1290")%>%
+  summarize(unioncovpct=unioncov*100)%>%
+  filter(condition==TRUE)%>%ungroup()%>%
+  group_by(year)%>%
+  summarize(unioncovpct=mean(unioncovpct))%>%
+  mutate(industry="Food manufacturing")
+
+beverage<-indunion%>%
+  group_by(year, condition=CIC=="1370"|CIC=="1390")%>%
+  summarize(unioncovpct=unioncov*100)%>%
+  filter(condition==TRUE)%>%ungroup()%>%
+  group_by(year)%>%
+  summarize(unioncovpct=mean(unioncovpct))%>%
+  mutate(industry="Beverage and tobacco product manufacturing")
+
+textile<-indunion%>%
+  group_by(year, condition=CIC=="1490"|CIC=="1570")%>%
+  summarize(unioncovpct=unioncov*100)%>%
+  filter(condition==TRUE)%>%ungroup()%>%
+  group_by(year)%>%
+  summarize(unioncovpct=mean(unioncovpct))%>%
+  mutate(industry="Textile mills")
+
+textileproduct<-indunion%>%
+  group_by(year, condition=CIC=="1590")%>%
+  summarize(unioncovpct=unioncov*100)%>%
+  filter(condition==TRUE)%>%ungroup()%>%
+  group_by(year)%>%
+  summarize(unioncovpct=mean(unioncovpct))%>%
+  mutate(industry="Textile product mills")
+
+apparel<-indunion%>%
+  group_by(year, condition=CIC=="1670"|CIC=="1680"|CIC=="1690"|CIC=="1770")%>%
+  summarize(unioncovpct=unioncov*100)%>%
+  filter(condition==TRUE)%>%ungroup()%>%
+  group_by(year)%>%
+  summarize(unioncovpct=mean(unioncovpct))%>%
+  mutate(industry="Apparel manufacturing")
+
+leather<-indunion%>%
+  group_by(year, condition=CIC=="1790")%>%
+  summarize(unioncovpct=unioncov*100)%>%
+  filter(condition==TRUE)%>%ungroup()%>%
+  group_by(year)%>%
+  summarize(unioncovpct=mean(unioncovpct))%>%
+  mutate(industry="Leather and allied products manufacturing")
+
+wood<-indunion%>%
+  group_by(year, condition=CIC=="3770"|CIC=="3780"|CIC=="3790"|CIC=="3875")%>%
+  summarize(unioncovpct=unioncov*100)%>%
+  filter(condition==TRUE)%>%ungroup()%>%
+  group_by(year)%>%
+  summarize(unioncovpct=mean(unioncovpct))%>%
+  mutate(industry="Wood product manufacturing")
+
+paper<-indunion%>%
+  group_by(year, condition=CIC=="1870"|CIC=="1880"|CIC=="1890")%>%
+  summarize(unioncovpct=unioncov*100)%>%
+  filter(condition==TRUE)%>%ungroup()%>%
+  group_by(year)%>%
+  summarize(unioncovpct=mean(unioncovpct))%>%
+  mutate(industry="Paper manufacturing")
+
+printing<-indunion%>%
+  group_by(year, condition=CIC=="1990")%>%
+  summarize(unioncovpct=unioncov*100)%>%
+  filter(condition==TRUE)%>%ungroup()%>%
+  group_by(year)%>%
+  summarize(unioncovpct=mean(unioncovpct))%>%
+  mutate(industry="Printing and related support activities")
+
+petroleum<-indunion%>%
+  group_by(year, condition=CIC=="2070"|CIC=="2090")%>%
+  summarize(unioncovpct=unioncov*100)%>%
+  filter(condition==TRUE)%>%ungroup()%>%
+  group_by(year)%>%
+  summarize(unioncovpct=mean(unioncovpct))%>%
+  mutate(industry="Petroleum and coal products manufacturing")
+
+chemical<-indunion%>%
+  group_by(year, condition=CIC=="2180"|CIC=="2290")%>%
+  summarize(unioncovpct=unioncov*100)%>%
+  filter(condition==TRUE)%>%ungroup()%>%
+  group_by(year)%>%
+  summarize(unioncovpct=mean(unioncovpct))%>%
+  mutate(industry="Chemical manufacturing")
+
+plastic<-indunion%>%
+  group_by(year, condition=CIC=="2370"|CIC=="2380"|CIC=="2390")%>%
+  summarize(unioncovpct=unioncov*100)%>%
+  filter(condition==TRUE)%>%ungroup()%>%
+  group_by(year)%>%
+  summarize(unioncovpct=mean(unioncovpct))%>%
+  mutate(industry="Plastics and rubber products manufacturing")
+
+nonmetallic<-indunion%>%
+  group_by(year, condition=CIC=="2590")%>%
+  summarize(unioncovpct=unioncov*100)%>%
+  filter(condition==TRUE)%>%ungroup()%>%
+  group_by(year)%>%
+  summarize(unioncovpct=mean(unioncovpct))%>%
+  mutate(industry="Nonmetallic mineral product manufacturing")
+
+primarymetal<-indunion%>%
+  group_by(year, condition=CIC=="2690"| CIC=="2670"| CIC=="2680"| CIC=="2690"| CIC=="2770")%>%
+  summarize(unioncovpct=unioncov*100)%>%
+  filter(condition==TRUE)%>%ungroup()%>%
+  group_by(year)%>%
+  summarize(unioncovpct=mean(unioncovpct))%>%
+  mutate(industry="Primary metal manufacturing")
+
+fabricatedmetal<-indunion%>%
+  group_by(year, condition=CIC=="2780"| CIC=="2790"| CIC=="2870"|CIC==2880|CIC=="2890"| CIC=="2970"| CIC=="2980"| CIC=="2990")%>%
+  summarize(unioncovpct=unioncov*100)%>%
+  filter(condition==TRUE)%>%ungroup()%>%
+  group_by(year)%>%
+  summarize(unioncovpct=mean(unioncovpct))%>%
+  mutate(industry="Fabricated metal product manufacturing")
+
+machinery<-indunion%>%
+  group_by(year, condition=CIC=="3190"|CIC=="3291")%>%
+  summarize(unioncovpct=unioncov*100)%>%
+  filter(condition==TRUE)%>%ungroup()%>%
+  group_by(year)%>%
+  summarize(unioncovpct=mean(unioncovpct))%>%
+  mutate(industry="Machinery manufacturing")
+
+computer<-indunion%>%
+  group_by(year, condition=CIC=="2265"| CIC=="3370"| CIC=="3380"| CIC=="3390")%>%
+  summarize(unioncovpct=unioncov*100)%>%
+  filter(condition==TRUE)%>%ungroup()%>%
+  group_by(year)%>%
+  summarize(unioncovpct=mean(unioncovpct))%>%
+  mutate(industry="Computer and electronic product manufacturing")
+
+electric<-indunion%>%
+  group_by(year, condition=CIC=="3470"|CIC=="3490")%>%
+  summarize(unioncovpct=unioncov*100)%>%
+  filter(condition==TRUE)%>%ungroup()%>%
+  group_by(year)%>%
+  summarize(unioncovpct=mean(unioncovpct))%>%
+  mutate(industry="Electrical equipment, appliance, and component manufacturing")
+
+transport<-indunion%>%
+  group_by(year, condition=CIC=="3570"| CIC=="3580"| CIC=="3590"| CIC=="3670"| CIC=="3680"| CIC=="3690")%>%
+  summarize(unioncovpct=unioncov*100)%>%
+  filter(condition==TRUE)%>%ungroup()%>%
+  group_by(year)%>%
+  summarize(unioncovpct=mean(unioncovpct))%>%
+  mutate(industry="Transportation equipment manufacturing")
+
+furniture<-indunion%>%
+  group_by(year, condition=CIC=="3895")%>%
+  summarize(unioncovpct=unioncov*100)%>%
+  filter(condition==TRUE)%>%ungroup()%>%
+  group_by(year)%>%
+  summarize(unioncovpct=mean(unioncovpct))%>%
+  mutate(industry="Furniture and related product manufacturing")
+
+miscellaneous<-indunion%>%
+  group_by(year, condition=CIC=="3980"|CIC=="3990")%>%
+  summarize(unioncovpct=unioncov*100)%>%
+  filter(condition==TRUE)%>%ungroup()%>%
+  group_by(year)%>%
+  summarize(unioncovpct=mean(unioncovpct))%>%
+  mutate(industry="Miscellaneous manufacturing")
+
+indunion1<-bind_rows(manufacturing, food, beverage, textile, textileproduct,
+                     apparel,leather, wood, paper, printing,petroleum,
+                     chemical,plastic, nonmetallic,primarymetal,fabricatedmetal,
+                     machinery, computer, electric,transport, furniture,
+                     miscellaneous)
+indunion1<-rename(indunion1, unioncovpct_ind=unioncovpct)
+
+##merge state and industry
+state_industry_union <- expand.grid(
+  year = unique(indunion1$year),
+  state = unique(stateunion1$state),
+  industry = unique(indunion1$industry)
+) %>%
+  left_join(indunion1, by = c("year", "industry")) %>%
+  left_join(stateunion1, by = c("year", "state")) %>%
+  mutate(unioncovpct_combined = (unioncovpct_ind + unioncovpct_state)/2,
+         idvar= paste(state, industry, year, sep = "-"))
+```
+
+Crosswalk robot and union
+ [1] "Manufacturing": Industry %in% "NONDURABLE GOODS MANUFACTURING", "DURABLE GOODS MANUFACTURING"                                               
+ [2] "Food manufacturing": CIC=="1070"|CIC=="1080"|CIC=="1090"|CIC=="1170"|CIC=="1180"|
+                         CIC=="1190"|CIC=="1270"|CIC=="1280"|CIC=="1290"
+ [3] "Beverage and tobacco product manufacturing": CIC=="1370"|CIC=="1390"
+ [4] "Textile mills": CIC=="1490"|CIC=="1570"
+ [5] "Textile product mills": CIC=="1590"
+ [6] "Apparel manufacturing": CIC=="1670"|CIC=="1680"|CIC=="1690"|CIC=="1770"
+ [7] "Leather and allied products manufacturing": CIC=="1790"
+ [8] "Wood product manufacturing": CIC=="3770"|CIC=="3780"|CIC=="3790"|CIC=="3875"
+ [9] "Paper manufacturing": CIC=="1870"|CIC=="1880"|CIC=="1890"
+[10] "Printing and related support activities": CIC=="1990"
+[11] "Petroleum and coal products manufacturing": CIC=="2070"|CIC=="2090"
+[12] "Chemical manufacturing": CIC=="2180"|CIC=="2290"
+[13] "Plastics and rubber products manufacturing": CIC=="2370"|CIC=="2380"|CIC=="2390"
+[14] "Nonmetallic mineral product manufacturing" CIC=="2590"
+[15] "Primary metal manufacturing" CIC=="2690"| CIC=="2670"| CIC=="2680"| CIC=="2690"| CIC=="2770"
+[16] "Fabricated metal product manufacturing" CIC=="2780"| CIC=="2790"| CIC=="2870"|CIC==2880|CIC=="2890"| CIC=="2970"| CIC=="2980"| CIC=="2990"
+[17] "Machinery manufacturing":  CIC=="3190"
+[18] "Computer and electronic product manufacturing": CIC=="2265"| CIC=="3370"| CIC=="3380"| CIC=="3390"
+[19] "Electrical equipment, appliance, and component manufacturing": CIC=="3470"|CIC=="3490"
+[20] "Transportation equipment manufacturing": CIC=="3570"| CIC=="3580"| CIC=="3590"| CIC=="3670"| CIC=="3680"| CIC=="3690"                      
+[21] "Furniture and related product manufacturing"  : CIC=="3895"               
+[22] "Miscellaneous manufacturing"     CIC=="3980"|CIC=="3990"  
+
+## Merge robot and union data
+
+```{r}
+##delete the duplicate columns state, industry, year from one of the datasets
+state_industry_robot<-state_industry_robot%>%select(-c(state, industry, year))
+
+##merge robot and union data
+robotunion<-left_join(state_industry_union, state_industry_robot, by="idvar")
+```
+
+Final dataset is robotunion
+
+## Build simpler data, only state, only industry
+
+```{r}
+##only state
+robotstate2<-robotstate%>%mutate(idvarstate= paste(state, year, sep = "-"))
+stateunion2<-stateunion1%>%mutate(idvarstate=paste(state, year, sep="-"))%>%
+  select(-c(state,year))
+onlystate<-left_join(stateunion2,robotstate2,by="idvarstate")
+
+##only industry
+robotindustry2<-robotindustry%>%mutate(idvarind=paste(industry, year, sep="-"))
+indunion2<-indunion1%>%mutate(idvarind=paste(industry, year, sep="-"))%>%
+  select(-industry,-year)
+onlyindustry<-left_join(indunion2,robotindustry2, by="idvarind")
+```
+
+Dataframes are: onlystate, onlyindustry
+
+## Control variables from ACS 2018, 2019, 2020, 2021
+https://data.census.gov/table/ACSDP1Y2018.DP03?q=DP03&t=Employment%20and%20Labor%20Force%20Status:Industry&g=010XX00US$0400000
+
+DP03 Selected Economic Characteristics, Geo: State, Topics: Employment->Employment
+and Labor Force Status, Industry
+
+Unemployed (in %)
+Females in labor force (in %)
+Manufacturing employment (in %)
+Median household income (in $)
+With health insurance coverage (in %)
+65 and over (in %)
+
+```{r}
+##load control variable data
+control2018<-read.csv("acs2018.csv")
+
+control2018<-control2018%>%slice(c(10, 12,39,68,103,143))%>%
+   select(-matches("Margin\\.of\\.Error"))%>%
+  mutate(Label..Grouping. = gsub("^\\s+|\\s+$", "", Label..Grouping.))
+
+median2018<-control2018%>%
+  rename(controlvar=Label..Grouping.)%>%
+  filter(grepl("Median household income", controlvar))%>%
+  mutate(controlvar="Median household income")%>%
+  select(-matches("Percent"))%>%
+  pivot_longer(
+    cols=matches("..Estimate"),
+    names_to="state",
+    values_to="newvar"
+  )%>%
+  mutate(state=gsub("\\.\\.Estimate", "", state),
+         state=gsub("\\.", " ",state),
+         newvar=gsub("\\,", "", newvar))%>%
+  mutate(newvar=as.numeric(newvar))%>%
+  mutate(newvar=newvar/1000)
+  
+other2018<-control2018%>%
+  rename(controlvar=Label..Grouping.)%>%
+  mutate(controlvar = case_when(
+    grepl("In labor force", controlvar) ~ "femalepct",
+    grepl("Unemployment Rate", controlvar) ~ "unemprate",
+    grepl("Manufacturing", controlvar) ~ "manufemp",
+    grepl("With health insurance coverage", controlvar) ~ "healthins",
+    grepl("65 years and over", controlvar) ~ "oldage",
+    TRUE ~ controlvar))%>%
+  slice(-4)%>%
+  select(-matches("\\.\\.Estimate"))%>%
+  pivot_longer(
+    cols=matches("..Percent"),
+    names_to="state",
+    values_to="newvar")%>%
+  mutate(state=gsub("\\.\\.Percent", "", state),
+         state=gsub("\\.", " ",state),
+         newvar=gsub("\\%", "", newvar))%>%
+  mutate(newvar=as.numeric(newvar))
+
+controlvar2018<-bind_rows(median2018, other2018)
+
+##Write function
+controlfunction<-function(x){
+x<-x%>%slice(c(10, 12,39,68,103,143))%>%
+   select(-matches("Margin\\.of\\.Error"))%>%
+  mutate(Label..Grouping. = gsub("^\\s+|\\s+$", "", Label..Grouping.))
+
+y<-x%>%
+  rename(controlvar=Label..Grouping.)%>%
+  filter(grepl("Median household income", controlvar))%>%
+  mutate(controlvar="Median household income")%>%
+  select(-matches("Percent"))%>%
+  pivot_longer(
+    cols=matches("..Estimate"),
+    names_to="state",
+    values_to="newvar"
+  )%>%
+  mutate(state=gsub("\\.\\.Estimate", "", state),
+         state=gsub("\\.", " ",state),
+         newvar=gsub("\\,", "", newvar))%>%
+  mutate(newvar=as.numeric(newvar))%>%
+  mutate(newvar=newvar/1000)
+  
+z<-x%>%
+  rename(controlvar=Label..Grouping.)%>%
+  mutate(controlvar = case_when(
+    grepl("In labor force", controlvar) ~ "femalepct",
+    grepl("Unemployment Rate", controlvar) ~ "unemprate",
+    grepl("Manufacturing", controlvar) ~ "manufemp",
+    grepl("With health insurance coverage", controlvar) ~ "healthins",
+    grepl("65 years and over", controlvar) ~ "oldage",
+    TRUE ~ controlvar))%>%
+  slice(-4)%>%
+  select(-matches("\\.\\.Estimate"))%>%
+  pivot_longer(
+    cols=matches("..Percent"),
+    names_to="state",
+    values_to="newvar")%>%
+  mutate(state=gsub("\\.\\.Percent", "", state),
+         state=gsub("\\.", " ",state),
+         newvar=gsub("\\%", "", newvar))%>%
+  mutate(newvar=as.numeric(newvar))
+
+newx<-bind_rows(y, z)
+return(newx)
+}
+##load data again
+controls2018<-read.csv("acs2018.csv")
+##try function
+controlvars2018<-controlfunction(controls2018)
+
+#load other data
+control2019<-read.csv("acs2019.csv")
+control2020<-read.csv("acs2020.csv")
+control2021<-read.csv("acs2021.csv")
+## apply function
+controlvars2019<-controlfunction(control2019)
+controlvars2020<-controlfunction(control2020)
+controlvars2021<-controlfunction(control2021)
+
+##add years
+controlvars2018<-controlvars2018%>%mutate(year=2018)
+controlvars2019<-controlvars2019%>%mutate(year=2019)
+controlvars2020<-controlvars2020%>%mutate(year=2020)
+controlvars2021<-controlvars2021%>%mutate(year=2021)
+##merge data
+controlvars<-bind_rows(controlvars2018, controlvars2019,controlvars2020,
+                       controlvars2021)
+
+##reshape to wide format
+controlvars<-controlvars%>%
+  group_by(state,year)%>%
+  pivot_wider(names_from=controlvar,
+              values_from=newvar)%>%
+  rename("medianhouseinc"="Median household income")
+```
+
+##Wage data
+https://www.bls.gov/oes/current/oes_research_estimates.htm
+NAICS codes: https://www.bls.gov/iag/tgs/iag_index_naics.htm
+
+```{r}
+##read file
+wage2018<-read_excel("wage2018.xlsx")
+wage2019<-read_excel("wage2019.xlsx")
+wage2020<-read_excel("wage2020.xlsx")
+wage2021<-read_excel("wage2021.xlsx")
+##select desired industries
+allind<-c("Manufacturing","Food Manufacturing","Beverage and Tobacco Product Manufacturing","Textile Mills","Textile Product Mills","Apparel Manufacturing","Leather and Allied Product Manufacturing","Wood Product Manufacturing","Paper Manufacturing","Printing and Related Support Activities","Petroleum and Coal Products Manufacturing","Chemical Manufacturing","Plastics and Rubber Products Manufacturing","Nonmetallic Mineral Product Manufacturing","Primary Metal Manufacturing","Fabricated Metal Product Manufacturing", "Machinery Manufacturing","Computer and Electronic Product Manufacturing","Electrical Equipment, Appliance, and Component Manufacturing","Transportation Equipment Manufacturing","Furniture and Related Product Manufacturing","Miscellaneous Manufacturing")
+
+wage2018new<-wage2018%>%filter(`occ title`=="All Occupations")%>%
+  filter(naics_title %in% allind)%>%
+  mutate(industry=stringr::str_to_sentence(naics_title),
+         year=2018,
+         a_mean=as.numeric(a_mean))%>%
+  select(state=area_title, industry, year, wage=a_mean)%>%
+  mutate(wage=wage/1000)
+
+wage2019new<-wage2019%>%filter(`occ title`=="All Occupations")%>%
+  filter(naics_title %in% allind)%>%
+  mutate(industry=stringr::str_to_sentence(naics_title),
+         year=2019,
+         a_mean=as.numeric(a_mean))%>%
+  select(state=area_title, industry, year, wage=a_mean)%>%
+  mutate(wage=wage/1000)
+
+wage2020new<-wage2020%>%filter(OCC_TITLE=="All Occupations")%>%
+  filter(NAICS_TITLE %in% allind)%>%
+  mutate(industry=stringr::str_to_sentence(NAICS_TITLE),
+         year=2020,
+         A_MEAN=as.numeric(A_MEAN))%>%
+  select(state=AREA_TITLE, industry, year, wage=A_MEAN)%>%
+  mutate(wage=wage/1000)
+
+wage2021new<-wage2021%>%filter(OCC_TITLE=="All Occupations")%>%
+  filter(NAICS_TITLE %in% allind)%>%
+  mutate(industry=stringr::str_to_sentence(NAICS_TITLE),
+         year=2021,
+         A_MEAN=as.numeric(A_MEAN))%>%
+  select(state=AREA_TITLE, industry, year, wage=A_MEAN)%>%
+  mutate(wage=wage/1000)
+
+wagenew<-bind_rows(wage2018new,wage2019new,wage2020new,wage2021new)
+wagenew1<-wagenew%>%
+  mutate(idvar=paste(state, industry, year, sep = "-"))%>%
+  select(-state,-industry,-year)
+
+##for onlystate
+statewage<-wagenew%>%group_by(state, year)%>%
+  summarize(wage_state=mean(wage, na.rm=TRUE))%>%ungroup()%>%
+  mutate(stateyear=paste(state, year, sep = "-"))%>%
+  select(-state,-year)
+#for onlyindustry
+industrywage<-wagenew%>%group_by(industry,year)%>%
+  summarize(wage_industry=mean(wage,na.rm=TRUE))%>%ungroup()%>%
+  mutate(idvarind=paste(industry, year, sep = "-"))%>%
+  select(-industry,-year)
+```
+
+##Gender and Age by Industry (Not used)
+
+The industry demographics (gender, age) exist in Tables 18 and 18b
+https://www.bls.gov/cps/cps_aa2018.htm
+https://www.bls.gov/cps/cps_aa2019.htm
+https://www.bls.gov/cps/cps_aa2020.htm
+https://www.bls.gov/cps/cps_aa2021.htm
+
+
+gender2018<-read_excel("cpsaat18_2018.xlsx")
+gender2018<-gender2018%>%slice(-(1:4))%>%
+  rename("industry"=1,
+"femalepct"=3)%>%select(industry,femalepct)
+
+##allind1
+allind1<-c("Manufacturing","Food manufacturing","Beverage and tobacco products manufacturing","Fabric mills, except knitting mills","Textile product mills, except carpet and rug","Apparel accessories and other apparel manufacturing","Leather tanning and finishing and other allied products manufacturing","Wood products manufacturing","Pulp, paper, and paperboard mills","Printing and related support activities","Petroleum and coal products manufacturing","Chemical manufacturing","Plastics and rubber products manufacturing","Nonmetallic mineral products manufacturing","Iron and steel mills and steel product manufacturing","Metal forgings and stampings", "Machinery manufacturing","Computers and electronic products manufacturing","Electrical equipment and appliances manufacturing","Transportation equipment manufacturing","Furniture and related product manufacturing","Miscellaneous manufacturing")
+
+## filter to desired observations
+gender2018<-gender2018%>%filter(industry %in% allind1)
+
+
+## Attach control variables to robotunion data
+
+```{r}
+## create stateyear variable
+robotunion1<-robotunion%>%
+  mutate(stateyear=paste(state, year, sep = "-"))
+controlvars1<-controlvars%>%
+  mutate(stateyear=paste(state,year,sep="-"))%>%ungroup()%>%
+  select(-c(state,year))
+
+## merge control and robotunion
+robotunion2<-left_join(robotunion1,controlvars1, by="stateyear")
+##merge wage and robotunion
+robotunion2<-left_join(robotunion2, wagenew1, by="idvar")
+robotunion2<-robotunion2%>%filter(!is.na(robotpct_combined))
+
+##repeat for onlystate
+onlystate1<-onlystate%>%
+  mutate(stateyear=paste(state, year, sep = "-"))
+onlystate2<-left_join(onlystate1, controlvars1, by="stateyear")
+onlystate2<-left_join(onlystate2,statewage, by="stateyear")
+##repeat for onlyindustry
+onlyindustry1<-left_join(onlyindustry, industrywage, by="idvarind")
+
+nadata<-robotunion2%>%filter(is.na(wage))
+```
+
+##Subset to descriptive statistics variables
+
+```{r}
+descriptive<-robotunion2%>%
+  select(robotpct_combined,unioncovpct_combined,wage,
+         medianhouseinc,unemprate,femalepct,manufemp,healthins,oldage)
+```
+
+
+## Overtime trend in robots and unions
+
+```{r}
+##create overtime data
+overtime<-robotunion2%>%
+  group_by(year)%>%
+  summarize(robotpct_combined=mean(robotpct_combined, na.rm=TRUE),
+            unioncovpct_combined=mean(unioncovpct_combined, na.rm=TRUE))%>%
+  pivot_longer(cols=c(robotpct_combined,unioncovpct_combined),
+               names_to = "vars",
+               values_to="Percent")
+
+##ggplot
+overtimegraph<-ggplot(data=overtime,aes(x=year,y=Percent, color=vars))+
+  geom_line(size=2)+
+  scale_color_grey(labels=c("Robot Exposure", "Unionization Rate"))+
+  labs(color=NULL)+
+  theme_bw()+
+  theme(legend.position = c(0.8, 0.4),
+        legend.text=element_text(size=12),
+        axis.text=element_text(size=12))
+ggsave("overtimegraph.png", overtimegraph, width=10, height=7)
+```
+
+##Scatterplot of robots and unions by industry
+
+```{r}
+industrydata<-robotunion2%>%
+  group_by(industry)%>%
+  summarize(robotpct_ind=mean(robotpct_ind, na.rm=TRUE),
+            unioncovpct_ind=mean(unioncovpct_ind, na.rm=TRUE))
+##create abbreviated industry variable
+industrydata<-industrydata%>%
+  mutate(abrev=ifelse(industry=="Apparel manufacturing","Apparel",
+      ifelse(industry=="Beverage and tobacco product manufacturing","BeverageTobacco", 
+      ifelse(industry=="Chemical manufacturing", "Chemical",
+      ifelse(industry=="Computer and electronic product manufacturing","Computer/electronic",
+      ifelse(industry=="Electrical equipment, appliance, and component manufacturing",
+             "Electrical",
+      ifelse(industry=="Fabricated metal product manufacturing", "Fab Metal",
+      ifelse(industry=="Food manufacturing", "Food",
+      ifelse(industry=="Furniture and related product manufacturing", "Furniture",
+      ifelse(industry=="Leather and allied products manufacturing", "Leather",
+      ifelse(industry=="Machinery manufacturing", "Machinery",
+      ifelse(industry=="Miscellaneous manufacturing", "Miscellaneous",
+      ifelse(industry=="Nonmetallic mineral product manufacturing", "Nonmetallic",
+      ifelse(industry=="Paper manufacturing","Paper",
+      ifelse(industry=="Petroleum and coal products manufacturing", "Petroleum/coal",
+      ifelse(industry=="Plastics and rubber products manufacturing","Plastics/rubber",
+      ifelse(industry=="Primary metal manufacturing","Primary metal",
+      ifelse(industry=="Printing and related support activities","Printing",
+      ifelse(industry=="Textile mills", "Textile",
+      ifelse(industry=="Textile product mills", "Textile product",
+      ifelse(industry=="Transportation equipment manufacturing","Transport",
+      ifelse(industry=="Wood product manufacturing","Wood",industry))))))))))))))))))))))
+
+
+##ggplot
+##ggrepel in https://www.datanovia.com/en/lessons/ggplot-scatter-plot/
+industrygraph<-ggplot(data=industrydata, aes(x=robotpct_ind,y=unioncovpct_ind))+
+  geom_point()+
+  geom_smooth(method = lm, color = "black")+
+  geom_text_repel(aes(label = abrev), size = 3)+
+  labs(x="Worker Robot Exposure in %",y="Unionization Rate in %")+theme_bw()
+ggsave("industrygraph.png",industrygraph)
+```
+
+## Create US state map with robotization and unionization
+
+```{r}
+##load map data
+usstate<-map_data("state")
+usstate<-usstate%>%mutate(state=stringr::str_to_title(region))
+
+##subset statedata
+statedata<-robotunion2%>%select(state,year, unioncovpct_state,robotpct_state)%>%
+  group_by(state)%>%
+  summarize(unioncovpct=mean(unioncovpct_state,na.rm=TRUE),
+            robotpct=mean(robotpct_state,na.rm=TRUE))
+
+##attach to state data
+statedata1<-left_join(usstate,statedata,by="state")
+
+##ggplot: https://rpubs.com/knm6/mapsI
+##Unionization map
+unionstateplot<-ggplot(data=statedata1, aes(long, lat, group=group, fill=unioncovpct))+
+  geom_polygon(color="black")+
+  scale_fill_gradient(low = "white", high = "black", name = "Unionization rate")+
+  coord_fixed(1.3)+
+  theme_void()
+
+##Robotization map
+robotstateplot<-ggplot(data=statedata1, aes(long, lat, group=group, fill=robotpct))+
+  geom_polygon(color="black")+
+  scale_fill_gradient(low = "white", high = "black", name = "Robot exposure")+
+  coord_fixed(1.3)+
+  theme_void()
+
+stateplot<-grid.arrange(unionstateplot,robotstateplot)
+ggsave("stateplot.png", stateplot)
+```
+
+
+## Implement regression
+
+```{r}
+##Base OLS
+robotregbase<-lm(robotpct_combined~unioncovpct_combined+factor(year), data=robotunion2)
+robotregstatebase<-lm(robotpct_state~unioncovpct_state+factor(year), data=onlystate2)
+robotregindbase<-lm(robotpct_ind~unioncovpct_ind+factor(year), data=onlyindustry1)
+
+##Control OLS
+robotregfull<-lm(robotpct_combined~unioncovpct_combined+wage+medianhouseinc+
+                   unemprate+femalepct+manufemp+healthins+oldage+factor(year),
+                 data=robotunion2)
+robotregstatefull<-lm(robotpct_state~unioncovpct_state+wage_state+medianhouseinc+
+                   unemprate+femalepct+manufemp+healthins+oldage+factor(year),
+                   data=onlystate2)
+robotregindustryfull<-lm(robotpct_ind~unioncovpct_ind+wage_industry+factor(year),
+                    data=onlyindustry1)
+
+##RSE
+basevcov<-vcovCL(robotregbase,cluster=~year, type="HC1")
+basese<-sqrt(diag(basevcov))
+
+statebasevcov<-vcovCL(robotregstatebase,cluster=~year, type="HC1")
+statebasese<-sqrt(diag(statebasevcov))
+
+indbasevcov<-vcovCL(robotregindbase,cluster=~year, type="HC1")
+indbasese<-sqrt(diag(indbasevcov))
+
+fullvcov<-vcovCL(robotregfull,cluster=~year, type="HC1")
+fullse<-sqrt(diag(fullvcov))
+
+statefullvcov<-vcovCL(robotregstatefull,cluster=~year, type="HC1")
+statefullse<-sqrt(diag(statefullvcov))
+
+indfullvcov<-vcovCL(robotregindustryfull,cluster=~year, type="HC1")
+indfullse<-sqrt(diag(indfullvcov))
+```
+
+## Print output
+
+```{r}
+##Descriptive statistics
+stargazer(descriptive, digits=1,
+          covariate.labels = c("\\% Workers Robot Exposure", "Unionization Rate",
+                               "Annual mean wage (in Th)",
+                               "Median Household Inc (in Th)",
+                               "Unemployment Rate","\\% Female", 
+                               "\\% Manufacturing Emp",
+                               "\\% Health insurance", "\\% 65+"),
+          type="html",out="descriptivestat.htm")
+```
+
+
+```{r}
+## Main models
+stargazer(robotregbase,robotregfull,
+          title="Unionization and Robotization Across US States and Industries",
+          covariate.labels = c("Unionization Rate","Annual Wage (in Th)", 
+                               "Median Household Inc (in Th)",
+                               "Unemp Rate","\\% Female", "\\% Manufacturing Emp",
+                               "\\% Health insurance", "\\% 65+", "2019", "2020",
+                               "2021"),
+          dep.var.labels = c("\\% Workers Robot Exposure"),
+          se=list(basese, fullse),
+          type="html", out="robotunionmain.htm")
+```
+
+```{r}
+## Robustness models
+stargazer(robotregstatebase, robotregstatefull, robotregindbase,robotregindustryfull,
+          title="Unionization and Robotization Across US States and Industries",
+          covariate.labels = c("Unionization Rate, State", "Unionization Rate, Ind",
+                               "Annual Wage, State (in Th)",
+                               "Annual Wage, Industry (in Th)",
+                               "Median Household Inc (in Th)",
+                               "Unemp Rate","\\% Female", "\\% Manufacturing Emp",
+                               "\\% Health insurance", "\\% 65+", "2019", "2020",
+                               "2021"),
+          order=c(1,9,2,10,3,4,5,6,7,8,11,12,13),
+          dep.var.labels = c("\\% Workers Robot Exp, State", "\\% Workers Robot Exp, Ind"),
+          se=list(statebasese, statefullse, indbasese, indfullse),
+          type="html", out="robotunionrobust.htm")
+```
+
