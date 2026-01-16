@@ -1,0 +1,89 @@
+"","unioncovpct_ind","idvarind","naics","industry","year","robotpct_ind","wage_industry"
+"1",9.78059358894825,"Manufacturing-2018","31-33","Manufacturing","2018",23.2,50.7037037037037
+"2",9.47362035512924,"Manufacturing-2019","31-33","Manufacturing","2019",26,52.0998148148148
+"3",9.24318060278893,"Manufacturing-2020","31-33","Manufacturing","2020",23.5,53.9285185185185
+"4",8.67823101580143,"Manufacturing-2021","31-33","Manufacturing","2021",27.8,56.1266037735849
+"5",11.5971383121279,"Food manufacturing-2018","311","Food manufacturing","2018",23.1,37.4074074074074
+"6",12.305849376652,"Food manufacturing-2019","311","Food manufacturing","2019",25.7,38.7398148148148
+"7",12.2328265259663,"Food manufacturing-2020","311","Food manufacturing","2020",20.8,40.3490740740741
+"8",10.9606229596668,"Food manufacturing-2021","311","Food manufacturing","2021",25,41.3051851851852
+"9",11.0806453973055,"Beverage and tobacco product manufacturing-2018","312","Beverage and tobacco product manufacturing","2018",18.9,43.0416981132075
+"10",12.7530690282583,"Beverage and tobacco product manufacturing-2019","312","Beverage and tobacco product manufacturing","2019",12.4,43.6252830188679
+"11",6.96455873548985,"Beverage and tobacco product manufacturing-2020","312","Beverage and tobacco product manufacturing","2020",13.9,44.7152830188679
+"12",5.93118099495769,"Beverage and tobacco product manufacturing-2021","312","Beverage and tobacco product manufacturing","2021",21.2,45.9269811320755
+"13",0.504827173426747,"Textile mills-2018","313","Textile mills","2018",10,43.5972727272727
+"14",4.11147298291326,"Textile mills-2019","313","Textile mills","2019",9.6,44.9287878787879
+"15",0,"Textile mills-2020","313","Textile mills","2020",9.4,47.2047058823529
+"16",0,"Textile mills-2021","313","Textile mills","2021",10.2,46.6982857142857
+"17",1.24092092737556,"Textile product mills-2018","314","Textile product mills","2018",7.5,36.0496
+"18",2.9755100607872,"Textile product mills-2019","314","Textile product mills","2019",8,37.5539215686275
+"19",2.09820028394461,"Textile product mills-2020","314","Textile product mills","2020",7.7,38.9328571428571
+"20",0.464555248618126,"Textile product mills-2021","314","Textile product mills","2021",9.8,39.5725490196078
+"21",4.87899919971824,"Apparel manufacturing-2018","315","Apparel manufacturing","2018",0.7,33.7335555555556
+"22",9.1387627646327,"Apparel manufacturing-2019","315","Apparel manufacturing","2019",1.2,36.2586666666667
+"23",7.85583853721619,"Apparel manufacturing-2020","315","Apparel manufacturing","2020",3.6,38.4292857142857
+"24",2.02772729098797,"Apparel manufacturing-2021","315","Apparel manufacturing","2021",3.8,38.4804545454545
+"25",0,"Leather and allied products manufacturing-2018","316","Leather and allied products manufacturing","2018",2.1,NA
+"26",0,"Leather and allied products manufacturing-2019","316","Leather and allied products manufacturing","2019",15.4,NA
+"27",0,"Leather and allied products manufacturing-2020","316","Leather and allied products manufacturing","2020",18,NA
+"28",2.39369701594114,"Leather and allied products manufacturing-2021","316","Leather and allied products manufacturing","2021",20.9,NA
+"29",3.53652266785502,"Wood product manufacturing-2018","321","Wood product manufacturing","2018",4.9,39.5401960784314
+"30",5.60612166300416,"Wood product manufacturing-2019","321","Wood product manufacturing","2019",6.6,40.5827450980392
+"31",4.59759598597884,"Wood product manufacturing-2020","321","Wood product manufacturing","2020",7.4,42.1678431372549
+"32",8.04372699931264,"Wood product manufacturing-2021","321","Wood product manufacturing","2021",10.4,43.6782352941176
+"33",21.0602144400279,"Paper manufacturing-2018","322","Paper manufacturing","2018",20.3,49.6073913043478
+"34",15.9749875466029,"Paper manufacturing-2019","322","Paper manufacturing","2019",17.1,50.8066666666667
+"35",18.8338729242484,"Paper manufacturing-2020","322","Paper manufacturing","2020",19.3,52.1973333333333
+"36",18.6332325140635,"Paper manufacturing-2021","322","Paper manufacturing","2021",22.1,55.3665217391304
+"37",3.87710705399513,"Printing and related support activities-2018","323","Printing and related support activities","2018",8.7,43.8667924528302
+"38",4.19080071151257,"Printing and related support activities-2019","323","Printing and related support activities","2019",9.5,44.5083018867925
+"39",3.92072536051273,"Printing and related support activities-2020","323","Printing and related support activities","2020",7.1,45.3501886792453
+"40",7.21710622310638,"Printing and related support activities-2021","323","Printing and related support activities","2021",8,46.1875471698113
+"41",16.2251994013786,"Petroleum and coal products manufacturing-2018","324","Petroleum and coal products manufacturing","2018",10.3,65.8051162790698
+"42",16.2458695471287,"Petroleum and coal products manufacturing-2019","324","Petroleum and coal products manufacturing","2019",8.8,67.7158139534884
+"43",20.9599561989307,"Petroleum and coal products manufacturing-2020","324","Petroleum and coal products manufacturing","2020",9.1,69.5123255813953
+"44",11.0151022672653,"Petroleum and coal products manufacturing-2021","324","Petroleum and coal products manufacturing","2021",13.6,74.42
+"45",5.25133972987533,"Chemical manufacturing-2018","325","Chemical manufacturing","2018",11.8,61.5490196078431
+"46",7.73810315877199,"Chemical manufacturing-2019","325","Chemical manufacturing","2019",14.2,63.7392
+"47",7.73538760840893,"Chemical manufacturing-2020","325","Chemical manufacturing","2020",13.1,64.6335294117647
+"48",7.4763149023056,"Chemical manufacturing-2021","325","Chemical manufacturing","2021",16.4,67.1023529411765
+"49",11.3546061019103,"Plastics and rubber products manufacturing-2018","326","Plastics and rubber products manufacturing","2018",32.9,44.7750980392157
+"50",6.83796238154173,"Plastics and rubber products manufacturing-2019","326","Plastics and rubber products manufacturing","2019",34.9,45.7488235294118
+"51",3.53130350510279,"Plastics and rubber products manufacturing-2020","326","Plastics and rubber products manufacturing","2020",29.8,46.918431372549
+"52",10.1316352685293,"Plastics and rubber products manufacturing-2021","326","Plastics and rubber products manufacturing","2021",35.2,48.494
+"53",7.09050819277763,"Nonmetallic mineral product manufacturing-2018","327","Nonmetallic mineral product manufacturing","2018",13.3,47.0423529411765
+"54",12.1269792318344,"Nonmetallic mineral product manufacturing-2019","327","Nonmetallic mineral product manufacturing","2019",18.8,47.9256603773585
+"55",6.31480067968369,"Nonmetallic mineral product manufacturing-2020","327","Nonmetallic mineral product manufacturing","2020",14.1,49.4051923076923
+"56",6.49131014943123,"Nonmetallic mineral product manufacturing-2021","327","Nonmetallic mineral product manufacturing","2021",19.2,51.1701886792453
+"57",16.7356068268418,"Primary metal manufacturing-2018","331","Primary metal manufacturing","2018",33.2,48.9361363636364
+"58",18.6714405193925,"Primary metal manufacturing-2019","331","Primary metal manufacturing","2019",31.3,49.4857777777778
+"59",16.7879799380898,"Primary metal manufacturing-2020","331","Primary metal manufacturing","2020",26.2,51.7960869565217
+"60",21.8824122101068,"Primary metal manufacturing-2021","331","Primary metal manufacturing","2021",31.6,54.5878260869565
+"61",7.17528257519007,"Fabricated metal product manufacturing-2018","332","Fabricated metal product manufacturing","2018",22.4,48.111568627451
+"62",8.98035354912281,"Fabricated metal product manufacturing-2019","332","Fabricated metal product manufacturing","2019",24.2,49.0555769230769
+"63",9.84682659618556,"Fabricated metal product manufacturing-2020","332","Fabricated metal product manufacturing","2020",22.7,50.4434615384615
+"64",8.3925544982776,"Fabricated metal product manufacturing-2021","332","Fabricated metal product manufacturing","2021",28.8,51.3888461538462
+"65",7.29657560586929,"Machinery manufacturing-2018","333","Machinery manufacturing","2018",28.7,54.8912244897959
+"66",8.96550342440605,"Machinery manufacturing-2019","333","Machinery manufacturing","2019",29.7,56.0532
+"67",7.4184350669384,"Machinery manufacturing-2020","333","Machinery manufacturing","2020",26.8,57.8332653061224
+"68",6.7692257463932,"Machinery manufacturing-2021","333","Machinery manufacturing","2021",32.4,59.4764
+"69",4.3506911645333,"Computer and electronic product manufacturing-2018","334","Computer and electronic product manufacturing","2018",15.5,67.3558
+"70",3.02051923548182,"Computer and electronic product manufacturing-2019","334","Computer and electronic product manufacturing","2019",19,70.115
+"71",3.15009765326977,"Computer and electronic product manufacturing-2020","334","Computer and electronic product manufacturing","2020",15.5,71.6429166666667
+"72",1.37876172860463,"Computer and electronic product manufacturing-2021","334","Computer and electronic product manufacturing","2021",17,74.5157142857143
+"73",6.2255160883069,"Electrical equipment, appliance, and component manufacturing-2018","335","Electrical equipment, appliance, and component manufacturing","2018",28.2,52.96875
+"74",10.227920114994,"Electrical equipment, appliance, and component manufacturing-2019","335","Electrical equipment, appliance, and component manufacturing","2019",34.8,54.8135416666667
+"75",10.7857219874859,"Electrical equipment, appliance, and component manufacturing-2020","335","Electrical equipment, appliance, and component manufacturing","2020",26.9,56.3655319148936
+"76",10.033318772912,"Electrical equipment, appliance, and component manufacturing-2021","335","Electrical equipment, appliance, and component manufacturing","2021",37.3,58.0341666666667
+"77",16.3348662356536,"Transportation equipment manufacturing-2018","336","Transportation equipment manufacturing","2018",40.1,58.3263265306122
+"78",13.6295746391018,"Transportation equipment manufacturing-2019","336","Transportation equipment manufacturing","2019",48.1,60.4964
+"79",11.7522398785998,"Transportation equipment manufacturing-2020","336","Transportation equipment manufacturing","2020",47.8,61.550625
+"80",15.1395083715518,"Transportation equipment manufacturing-2021","336","Transportation equipment manufacturing","2021",51.6,63.5557142857143
+"81",8.57872366905212,"Furniture and related product manufacturing-2018","337","Furniture and related product manufacturing","2018",15.9,42.1709615384615
+"82",6.36792257428169,"Furniture and related product manufacturing-2019","337","Furniture and related product manufacturing","2019",19.6,42.9829411764706
+"83",4.67502847313881,"Furniture and related product manufacturing-2020","337","Furniture and related product manufacturing","2020",15.7,44.5735294117647
+"84",4.59409765899181,"Furniture and related product manufacturing-2021","337","Furniture and related product manufacturing","2021",19.2,44.9925490196078
+"85",6.02167323231697,"Miscellaneous manufacturing-2018","339","Miscellaneous manufacturing","2018",15.5,51.1111538461538
+"86",6.44496772438288,"Miscellaneous manufacturing-2019","339","Miscellaneous manufacturing","2019",19.5,53.0869230769231
+"87",7.55185168236494,"Miscellaneous manufacturing-2020","339","Miscellaneous manufacturing","2020",16.5,54.6369230769231
+"88",8.38015675544739,"Miscellaneous manufacturing-2021","339","Miscellaneous manufacturing","2021",19.9,53.0386274509804
